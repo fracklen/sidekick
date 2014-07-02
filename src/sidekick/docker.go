@@ -2,36 +2,26 @@ package sidekick
 
 import(
   "fmt"
-  "os"
   "log"
   "encoding/json"
   "io/ioutil"
   "bytes"
   "net"
-  "flag"
   "net/http"
   "net/url"
   "errors"
 )
-
 var (
-  //dockerUrl = flag.String("docker-url", "unix:///var/run/docker.sock", "Docker socket file/url")
-  dockerUrl = flag.String("docker-url", "http://172.16.42.43:4243", "Docker socket file/url")
   ErrNotFound = errors.New("Not Found")
-  containerId = "a380ed47f37f"
-  hostname = os.Getenv("HOSTNAME")
-  exposedPort = flag.String("port", "2345", "Port")
-  etcdUrl = os.Getenv("ETCD_URL")
 )
 
-
-func FindEndpoint() (string, error) {
-  info, err := findApplicationContainer()
+func FindEndpoint(dockerUrl string, containerId string, exposedPort string) (string, error) {
+  info, err := findApplicationContainer(dockerUrl, containerId)
   if err != nil {
     log.Fatalf("Error finding container: %+v", err)
   }
 
-  internalPort := fmt.Sprintf("%s/tcp", *exposedPort)
+  internalPort := fmt.Sprintf("%s/tcp", exposedPort)
 
   portBindings := info.NetworkSettings.Ports[internalPort]
 
@@ -44,8 +34,8 @@ func FindEndpoint() (string, error) {
 }
 
 
-func findApplicationContainer() (*ContainerInfo, error) {
-  u, err := url.Parse(*dockerUrl)
+func findApplicationContainer(dockerUrl string, containerId string) (*ContainerInfo, error) {
+  u, err := url.Parse(dockerUrl)
 
   if err != nil {
     log.Fatal("Error parsing docker-url")
