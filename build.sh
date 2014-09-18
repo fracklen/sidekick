@@ -1,3 +1,4 @@
+export GOPATH=$(pwd)
 GOOS=linux GOARCH=amd64 go build sidekick.go
 
 mkdir -p /tmp/sidekick-docker
