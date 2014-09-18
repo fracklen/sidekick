@@ -19,7 +19,6 @@ func CheckUrl(u *url.URL, method string, expectedStatus int, verbose bool) bool 
     Dial: dialTimeout,
   }
 
-  u.Path = ""
   client := http.Client{Transport: httpTransport}
 
   req, err := http.NewRequest(method, u.String(), nil)

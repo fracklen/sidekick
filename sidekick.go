@@ -3,11 +3,11 @@ package main
 import (
   "sidekick"
   "vulcanClient"
-
-  "log"
-  "flag"
   "os"
   "os/signal"
+  "syscall"
+  "log"
+  "flag"
   "net/url"
   "fmt"
   "time"
@@ -19,7 +19,7 @@ var (
   expectedHttpCode = flag.Int("expected-http-code", 200, "Expected Http Code from health check")
   interval         = flag.Int("interval", 10, "Health check interval")
   //dockerUrl        = flag.String("docker-url", "http://172.16.42.43:4243", "Docker socket file/url")
-  containerId      = flag.String("container", "2dc43851e93f", "Container ID")
+  containerName    = flag.String("container", "2dc43851e93f", "Container ID/Name")
   virtualHostnames = flag.String("hostname", "www.example.org", "Comma-separated Virtual Hostnames")
   exposedPort      = flag.String("port", "8080", "Port")
   etcdUrl          = flag.String("etcd", "http://172.16.42.43:4001", "Etcd endpoint")
@@ -49,27 +49,49 @@ func init() {
 }
 
 func main() {
-  go trap()
+  var endpoint, containerId string
+  var err interface{}
 
-  endpoint, err := sidekick.FindEndpoint(*dockerUrl, *containerId, *exposedPort)
-  if err != nil {
-    log.Fatal(err)
+  for {
+    endpoint, containerId, err = sidekick.FindEndpoint(*dockerUrl, *containerName, *exposedPort)
+    if err != nil {
+      log.Printf("Error finding endpoint: %+v", err)
+      wait(1)
+    } else {
+      break
+    }
   }
+
   log.Printf("Endpoint: %s", endpoint)
+  defer vc.Delete(*upstream, containerId)
+  go trap(containerId)
 
   for {
     if ping(endpoint, *healthUrl, *httpMethod, *expectedHttpCode, *verbose) {
       if *verbose {
         log.Printf("OK")
       }
-      vc.Set(*upstream, *containerId, endpoint, virtualHostnameList, *location, *path)
+      vc.Set(*upstream, containerId, endpoint, virtualHostnameList, *location, *path)
+      wait(*interval)
     } else {
       if *verbose {
         log.Printf("Failed")
       }
-      vc.Delete(*upstream, *containerId, virtualHostnameList, *location)
+      vc.Delete(*upstream, containerId)
+      wait(5)
     }
-    wait(*interval)
+
+  }
+}
+
+func trap(containerId string) {
+  c := make(chan os.Signal, 1)
+  signal.Notify(c, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+  for {
+    <- c
+    vc.Delete(*upstream, containerId)
+    os.Exit(0)
   }
 }
 
@@ -89,17 +111,6 @@ func ping(endpoint string, healthUrl string, method string, expectedHttpCode int
   }
 
   return sidekick.CheckUrl(u, method, expectedHttpCode, verbose)
-}
-
-func trap() {
-  c := make(chan os.Signal, 1)
-  signal.Notify(c, os.Interrupt)
-
-  for {
-    <- c
-    vc.Delete(*upstream, *containerId, virtualHostnameList, *location)
-    os.Exit(0)
-  }
 }
 
 func wait(secs int) {
