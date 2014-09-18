@@ -15,10 +15,10 @@ var (
   ErrNotFound = errors.New("Not Found")
 )
 
-func FindEndpoint(dockerUrl string, containerId string, exposedPort string) (string, error) {
-  info, err := findApplicationContainer(dockerUrl, containerId)
+func FindEndpoint(dockerUrl string, containerName string, exposedPort string) (string, string, error) {
+  info, err := findApplicationContainer(dockerUrl, containerName)
   if err != nil {
-    log.Fatalf("Error finding container: %+v", err)
+    return "", "", err
   }
 
   internalPort := fmt.Sprintf("%s/tcp", exposedPort)
@@ -27,14 +27,14 @@ func FindEndpoint(dockerUrl string, containerId string, exposedPort string) (str
 
   for _, host := range portBindings {
     endpoint := fmt.Sprintf("%s:%s", host.HostIp, host.HostPort)
-    return endpoint, nil
+    return endpoint, info.Id, nil
   }
 
-  return "", ErrNotFound
+  return "", "", ErrNotFound
 }
 
 
-func findApplicationContainer(dockerUrl string, containerId string) (*ContainerInfo, error) {
+func findApplicationContainer(dockerUrl string, containerName string) (*ContainerInfo, error) {
   u, err := url.Parse(dockerUrl)
 
   if err != nil {
@@ -43,7 +43,7 @@ func findApplicationContainer(dockerUrl string, containerId string) (*ContainerI
 
   client := newHTTPClient(u)
 
-  uri := fmt.Sprintf("%s/v1.12/containers/%s/json", u.String(), containerId)
+  uri := fmt.Sprintf("%s/v1.12/containers/%s/json", u.String(), containerName)
 
   info := &ContainerInfo{}
   data, err := doRequest(client, "GET", uri, nil)
