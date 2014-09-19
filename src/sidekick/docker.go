@@ -62,42 +62,52 @@ func findApplicationContainer(dockerURL string, containerName string) (*Containe
 
 func doRequest(client *http.Client, method string, path string, body []byte) ([]byte, error) {
 	b := bytes.NewBuffer(body)
+
 	req, err := http.NewRequest(method, path, b)
 	if err != nil {
 		return nil, err
 	}
+
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
+
 	defer resp.Body.Close()
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
+
 	if resp.StatusCode == 404 {
 		return nil, errNotFound
 	}
+
 	if resp.StatusCode >= 400 {
 		return nil, fmt.Errorf("%s: %s", resp.Status, data)
 	}
+
 	return data, nil
 }
 
 func newHTTPClient(u *url.URL) *http.Client {
 	httpTransport := &http.Transport{}
+
 	if u.Scheme == "unix" {
 		socketPath := u.Path
 		unixDial := func(proto string, addr string) (net.Conn, error) {
 			return net.Dial("unix", socketPath)
 		}
+
 		httpTransport.Dial = unixDial
+
 		// Override the main URL object so the HTTP lib won't complain
 		u.Scheme = "http"
 		u.Host = "unix.sock"
 	}
+
 	u.Path = ""
 	return &http.Client{Transport: httpTransport}
 }
