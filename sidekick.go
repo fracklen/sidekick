@@ -44,7 +44,8 @@ func init() {
 		log.Fatal("No hostname given")
 	}
 
-	vc = vulcanClient.New(*etcdURL)
+	// Create new Vulcan client with an TTL of 3 times the health check interval
+	vc = vulcanClient.New(*etcdURL, uint64(3 * (*interval)))
 }
 
 func main() {

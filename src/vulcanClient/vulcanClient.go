@@ -10,11 +10,12 @@ import (
 // VulcanClient - A etcd wrapper
 type VulcanClient struct {
 	etcdClient *etcd.Client
+	ttl        uint64
 }
 
 // New - returns a new VulcanClient
-func New(etcdURL string) *VulcanClient {
-	return &VulcanClient{etcd.NewClient([]string{etcdURL})}
+func New(etcdURL string, ttl uint64) *VulcanClient {
+	return &VulcanClient{etcd.NewClient([]string{etcdURL}), ttl}
 }
 
 // Set - creates a new endpoint for container in etcd
@@ -36,7 +37,7 @@ func (c VulcanClient) Set(upstream, containerID, endpoint string, virtualHostnam
 		}
 	}
 
-	_, err = c.etcdClient.Set(uppath, value, 0)
+	_, err = c.etcdClient.Set(uppath, value, c.ttl)
 	if err != nil {
 		log.Printf("Error updating %+v -> %+v: %+v", uppath, value, err)
 	}
