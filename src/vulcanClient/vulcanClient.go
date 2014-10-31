@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/coreos/go-etcd/etcd"
 	"log"
+	"strings"
 )
 
 // VulcanClient - A etcd wrapper
@@ -15,7 +16,7 @@ type VulcanClient struct {
 
 // New - returns a new VulcanClient
 func New(etcdURL string, ttl uint64) *VulcanClient {
-	return &VulcanClient{etcd.NewClient([]string{etcdURL}), ttl}
+	return &VulcanClient{etcd.NewClient(strings.Split(etcdURL, ",")), ttl}
 }
 
 // Set - creates a new endpoint for container in etcd
