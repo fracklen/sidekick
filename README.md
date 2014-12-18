@@ -6,7 +6,7 @@ A small Go-application, which sits next to your own application and acts as its 
 
 In this sense, a sidekick will poke to its "hero" with a specific `interval`.
 It will poke a `health-url`, where it expect the "hero" to return an `expected-http-code`.
-If every went OK, the sidekick will add the "hero" as an upstream in [Vulcan](https://github.com/mailgun/vulcan) via [etcd](https://github.com/coreos/go-etcd).
+If every went OK, the sidekick will add the "hero" as an upstream in [Vulcand](https://github.com/mailgun/vulcand) via [etcd](https://github.com/coreos/go-etcd).
 
 The sidekick will check each `interval` seconds, and pull it out of Vulcan, if it gets an unexpected return code.
 
